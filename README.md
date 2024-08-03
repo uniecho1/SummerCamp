@@ -15,7 +15,7 @@ Though Public-key cryptography is low efficiency and not used to encrypt long me
 
 We'll give you the plaintext from real scene(eg. books, news, daily talks, etc), and a elliptic curve group, you can design the mapping from word to point yourself in order to achieve the least memory cost by mapping & ciphertext.And then you can still reduce the memory cost by adapting some algorithm to the ciphertext. 
 
-This part will be manually judged. So don't try to compress the message in plaintext without any encryption. And note that we won't give you the plaintext in advance, so there's no way for you to map the whole plaintext to one node()
+This part will be manually judged. So don't try to compress the message in plaintext without any encryption. And note that we won't give you the plaintext in advance, so there's no way for you to map the whole plaintext to one point()
 
 Here are some documents you may like to read:
 
