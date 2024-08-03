@@ -31,56 +31,103 @@ secp521r1 = EllipticCurve(
     ),
 )
 
-ECC_list = [ecnu32v1, secp256k1, secp521r1]
+ECC_list = [(998244353, 3), ecnu32v1, secp256k1, secp521r1]
 
 
-def build_mapping_table(EC: EllipticCurve):
+def build_mapping_table(Group):
     mapping_table = {}
-    for c in range(32, 127):
-        # print(f"{c} : {chr(c)}")
-        # print(
-        #     f"{chr(c)} : {EC.scalar_multiplication(random.randint(1, EC.p - 1), EC.get_g())}"
-        # )
-        mapping_table[chr(c)] = EC.scalar_multiplication(
-            random.randint(1, EC.p - 1), EC.get_g()
-        )
+    # r = random.sample(range(1, Group.p - 1), 127 - 32)
+    r = []
+
+    if type(Group).__name__ == "EllipticCurve":
+        EC = Group
+        for _ in range(127 - 32):
+            tmp = random.randint(1, Group.p - 1)
+            while tmp in r:
+                tmp = random.randint(1, Group.p - 1)
+            r.append(tmp)
+        for c in range(32, 127):
+            mapping_table[chr(c)] = EC.scalar_multiplication(r[c - 32], EC.get_g())
+    else:
+        p, g = Group
+        for _ in range(127 - 32):
+            tmp = random.randint(1, p - 1)
+            while tmp in r:
+                tmp = random.randint(1, p - 1)
+            r.append(tmp)
+        for c in range(32, 127):
+            mapping_table[chr(c)] = pow(g, r[c - 32], p)
     return mapping_table
 
 
-def Encrypt(message: str, mapping_table, EC: EllipticCurve, pk: tuple, r=None):
+def Encrypt(message: str, mapping_table, Group, pk: tuple, r=None):
     CT = []
-    algorithm = Algorithm(EC)
-    for c in message:
-        point = mapping_table[c]
-        C = algorithm.encrypt(pk, point, r)
-        CT.append(C)
+    if type(Group).__name__ == "EllipticCurve":
+        EC = Group
+        algorithm = Algorithm(EC)
+        for c, o in zip(message, r):
+            point = mapping_table[c]
+            C = algorithm.encrypt(pk, point, o)
+            CT.append(C)
+    else:
+        p, g = Group
+        for c, o in zip(message, r):
+            m = mapping_table[c]
+            c1 = pow(g, o, p)
+            c2 = (m * pow(pk, o, p)) % p
+            CT.append((c1, c2))
     return CT
 
 
-def make_single_data(id: int, len: int, EC: EllipticCurve):
-    mapping_table = build_mapping_table(EC)
-    path = f"../test_data/test_{id}"
+def make_single_data(id: int, len: int, Group):
+    # print(type(Group).__name__=="EllipticCurve")
+
     message = utils.random_string(len)
-    sk = random.randint(1, EC.p - 1)
-    pk = EC.scalar_multiplication(sk, EC.get_g())
-    r = random.randint(1, EC.p - 1)
-    ciphertext = Encrypt(message, mapping_table, EC, pk, r)
+    path = f"../test_data/test_{id}"
     subprocess.run(["mkdir", path])
-    with open(f"{path}/mapping_table", "w") as f:
-        for k, v in mapping_table.items():
-            f.write(f"{k} : {v}\n")
-    with open(f"{path}/message", "w") as f:
-        f.write(message)
-    with open(f"{path}/EllipticCurveGroup", "w") as f:
-        f.write(str(EC))
-    with open(f"{path}/parameter", "w") as f:
-        f.write(f"pk : {pk}\nsk : {sk}\nr : {r}")
-    with open(f"{path}/ciphertext", "w") as f:
-        f.write(f"{ciphertext}\n")
+    mapping_table = build_mapping_table(Group)
+    if type(Group).__name__ == "EllipticCurve":
+        EC = Group
+        sk = random.randint(1, EC.p - 1)
+        pk = EC.scalar_multiplication(sk, EC.get_g())
+        # r = random.randint(1, EC.p - 1)
+        r = [random.randint(1, EC.p - 1) for _ in range(message.__len__())]
+        ciphertext = Encrypt(message, mapping_table, EC, pk, r)
+        header = "EllipticCurve\n"
+    else:
+        p, g = Group
+        sk = random.randint(1, p - 1)
+        pk = pow(g, sk, p)
+        # r = random.randint(1, p - 1)
+        r = [random.randint(1, p - 1) for _ in range(message.__len__())]
+        ciphertext = Encrypt(message, mapping_table, Group, pk, r)
+        header = "Zp\n"
+    output = header + message + "\n"
+    output += str(Group) + "\n"
+    output += f"({pk}, {sk})\n"
+    output += str(r) + "\n"
+    output += str(ciphertext) + "\n"
+    with open(f"{path}/data", "w") as f:
+        f.write(output)
+    # with open(f"{path}/mapping_table", "w") as f:
+    #     for k, v in mapping_table.items():
+    #         f.write(f"{k} : {v}\n")
+    # with open(f"{path}/message", "w") as f:
+    #     f.write(message)
+    # with open(f"{path}/Group", "w") as f:
+    #     if type(Group).__name__ == "EllipticCurve":
+    #         header = "EllipticCurve\n"
+    #     else:
+    #         header = "Zp\n"
+    #     f.write(header + str(Group))
+    # with open(f"{path}/parameter", "w") as f:
+    #     f.write(f"pk : {pk}\nsk : {sk}\nr : {r}")
+    # with open(f"{path}/ciphertext", "w") as f:
+    #     f.write(f"{ciphertext}\n")
 
 
-def make_data(n=20):
-    ratio = [0, 0.3, 0.6, 1]
+def make_data(n=50):
+    ratio = [0, 0.2, 0.5, 0.8, 1]
     for i in range(len(ratio) - 1):
         for _ in range(int(ratio[i] * n), int(ratio[i + 1] * n)):
             make_single_data(_, random.randint(100, 1000), ECC_list[i])

@@ -18,7 +18,7 @@ class EllipticCurve:
         return self.g
 
     def __str__(self):
-        return f"y^2 = x^3 + {self.a}x + {self.b} (mod {self.p})\nG = {self.g}"
+        return f"({self.a}, {self.b}, {self.p}, {self.g})"
 
     def on_curve(self, point):
         """Check if the point (x, y) is on the curve."""
