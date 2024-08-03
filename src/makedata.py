@@ -47,24 +47,36 @@ def build_mapping_table(EC: EllipticCurve):
     return mapping_table
 
 
-def Encrypt(message: str, EC: EllipticCurve, pk: tuple, r=None):
+def Encrypt(message: str, mapping_table, EC: EllipticCurve, pk: tuple, r=None):
+    CT = []
     algorithm = Algorithm(EC)
-    point = User(EC).encode(message)
-    return algorithm.encrypt(pk, point, r)
+    for c in message:
+        point = mapping_table[c]
+        C = algorithm.encrypt(pk, point, r)
+        CT.append(C)
+    return CT
 
 
 def make_single_data(id: int, len: int, EC: EllipticCurve):
-    # mapping_table = build_mapping_table(EC)
+    mapping_table = build_mapping_table(EC)
     path = f"../test_data/test_{id}"
     message = utils.random_string(len)
+    sk = random.randint(1, EC.p - 1)
+    pk = EC.scalar_multiplication(sk, EC.get_g())
+    r = random.randint(1, EC.p - 1)
+    ciphertext = Encrypt(message, mapping_table, EC, pk, r)
     subprocess.run(["mkdir", path])
-    # with open(f"{path}/mapping_table", "w") as f:
-    #     for k, v in mapping_table.items():
-    #         f.write(f"{k} : {v}\n")
+    with open(f"{path}/mapping_table", "w") as f:
+        for k, v in mapping_table.items():
+            f.write(f"{k} : {v}\n")
     with open(f"{path}/message", "w") as f:
         f.write(message)
     with open(f"{path}/EllipticCurveGroup", "w") as f:
         f.write(str(EC))
+    with open(f"{path}/parameter", "w") as f:
+        f.write(f"pk : {pk}\nsk : {sk}\nr : {r}")
+    with open(f"{path}/ciphertext", "w") as f:
+        f.write(f"{ciphertext}\n")
 
 
 def make_data(n=20):
