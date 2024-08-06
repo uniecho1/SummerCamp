@@ -1,3 +1,13 @@
+在这个小 project 中，你们需要基于 C++ 实现一个 ElGamal 的密码学算法，并支持以下功能：
+
+- `encrypt(msg, group, char2elem, pk, r) -> ct`: 根据映射 `char2elem` 将消息 `msg` 中的每个字符映射 `Group` 中，并使用给定的 `pk` 和 `r` 进行加密，并将结果拼接在一起，得到最终的密文 `ct`。
+
+- `decrypt(ct, group, elem2char, sk) -> msg`: 将 `ct` 用 `sk` 逐一解密后得到 `group` 中元素后，再由 `elem2char` 映射回字符，进而还原消息。
+
+对于 $20\%$ 的数据，保证 `group` 为 $Z_p$
+
+---
+
 A little project for ECNU summer camp.
 
 Hope you'll find it interesting.
